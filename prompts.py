@@ -46,7 +46,8 @@ Each decision point should:
 3. Clearly mark which option is correct (only one option should be correct)
 4. Increase in complexity/difficulty as they progress
 
-Return the decision points in the following JSON format:
+IMPORTANT: Return ONLY the decision points in the following JSON format with no additional text, comments, or explanation:
+
 [
   {{
     "question": "What action should you take when...",
@@ -57,10 +58,27 @@ Return the decision points in the following JSON format:
       {{"text": "Option 4 description", "is_correct": false}}
     ]
   }},
-  // Additional decision points...
+  {{
+    "question": "After the initial response, what should you do next...",
+    "options": [
+      {{"text": "Option 1 description", "is_correct": false}},
+      {{"text": "Option 2 description", "is_correct": false}},
+      {{"text": "Option 3 description", "is_correct": true}},
+      {{"text": "Option 4 description", "is_correct": false}}
+    ]
+  }},
+  {{
+    "question": "To prevent this issue in the future, what measure would be most effective...",
+    "options": [
+      {{"text": "Option 1 description", "is_correct": false}},
+      {{"text": "Option 2 description", "is_correct": false}},
+      {{"text": "Option 3 description", "is_correct": false}},
+      {{"text": "Option 4 description", "is_correct": true}}
+    ]
+  }}
 ]
 
-Ensure the options are realistic and the correct answer represents best security practices.
+Ensure the options are realistic, relevant to the {industry} industry, and the correct answer represents best security practices.
 """
 
 # Prompt for analyzing user decisions

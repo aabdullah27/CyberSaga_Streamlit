@@ -42,11 +42,82 @@ if "current_scenario" not in st.session_state:
 if "current_step" not in st.session_state:
     st.session_state.current_step = "welcome"
 
-if "decision_history" not in st.session_state:
-    st.session_state.decision_history = []
+if "scenarios_decision_history" not in st.session_state:
+    st.session_state.scenarios_decision_history = {}
 
-if "learning_moments" not in st.session_state:
-    st.session_state.learning_moments = []
+if "scenarios_learning_moments" not in st.session_state:
+    st.session_state.scenarios_learning_moments = {}
+
+# Helper functions
+def reset_scenario():
+    """Reset the current scenario state."""
+    st.session_state.current_scenario = None
+    st.session_state.current_step = "select_scenario"
+
+def save_decision(scenario_id, decision, feedback, is_correct):
+    """Save a user decision to history for a specific scenario."""
+    if scenario_id not in st.session_state.scenarios_decision_history:
+        st.session_state.scenarios_decision_history[scenario_id] = []
+    
+    st.session_state.scenarios_decision_history[scenario_id].append({
+        "decision": decision,
+        "feedback": feedback,
+        "correct": is_correct,
+        "summary": f"{'✓' if is_correct else '✗'} Chose to {decision.lower()}",
+        "timestamp": datetime.now().isoformat()
+    })
+
+def save_learning_moment(scenario_id, learning_moment):
+    """Save a learning moment for a specific scenario."""
+    if scenario_id not in st.session_state.scenarios_learning_moments:
+        st.session_state.scenarios_learning_moments[scenario_id] = []
+    
+    st.session_state.scenarios_learning_moments[scenario_id].append(learning_moment)
+
+def create_sample_scenarios():
+    """Create sample scenarios for demonstration."""
+    return [
+        {
+            "id": "phish-1",
+            "title": "The Suspicious Email",
+            "description": "You receive an urgent email claiming to be from your company's IT department requesting you to verify your credentials due to a security breach.",
+            "domain": "phishing",
+            "difficulty": "beginner",
+            "industry_context": "corporate"
+        },
+        {
+            "id": "ransomware-1",
+            "title": "Locked Out",
+            "description": "You arrive at work to find your computer locked with a message demanding payment to restore your files.",
+            "domain": "ransomware",
+            "difficulty": "intermediate",
+            "industry_context": "healthcare"
+        },
+        {
+            "id": "social-1",
+            "title": "The Unexpected Visitor",
+            "description": "A person you don't recognize is at the office reception claiming to be a new IT contractor who needs access to the server room.",
+            "domain": "social_engineering",
+            "difficulty": "intermediate",
+            "industry_context": "financial"
+        },
+        {
+            "id": "data-1",
+            "title": "The Data Transfer Request",
+            "description": "A senior executive emails you requesting an urgent transfer of sensitive customer data to an external consultant.",
+            "domain": "data_protection",
+            "difficulty": "advanced",
+            "industry_context": "retail"
+        },
+        {
+            "id": "network-1",
+            "title": "The New WiFi Network",
+            "description": "While working at a coffee shop, you notice a new WiFi network with your company's name that doesn't require a password.",
+            "domain": "network_security",
+            "difficulty": "beginner",
+            "industry_context": "remote_work"
+        }
+    ]
 
 # Custom CSS
 def load_css():
@@ -130,67 +201,6 @@ def load_css():
     """, unsafe_allow_html=True)
 
 load_css()
-
-# Helper functions
-def reset_scenario():
-    """Reset the current scenario state."""
-    st.session_state.current_scenario = None
-    st.session_state.current_step = "select_scenario"
-    st.session_state.decision_history = []
-    st.session_state.learning_moments = []
-
-def save_decision(decision, feedback):
-    """Save a user decision to history."""
-    st.session_state.decision_history.append({
-        "decision": decision,
-        "feedback": feedback,
-        "timestamp": datetime.now().isoformat()
-    })
-
-def create_sample_scenarios():
-    """Create sample scenarios for demonstration."""
-    return [
-        {
-            "id": "phish-1",
-            "title": "The Suspicious Email",
-            "description": "You receive an urgent email claiming to be from your company's IT department requesting you to verify your credentials due to a security breach.",
-            "domain": "phishing",
-            "difficulty": "beginner",
-            "industry_context": "corporate"
-        },
-        {
-            "id": "ransomware-1",
-            "title": "Locked Out",
-            "description": "You arrive at work to find your computer locked with a message demanding payment to restore your files.",
-            "domain": "ransomware",
-            "difficulty": "intermediate",
-            "industry_context": "healthcare"
-        },
-        {
-            "id": "social-1",
-            "title": "The Unexpected Visitor",
-            "description": "A person you don't recognize is at the office reception claiming to be a new IT contractor who needs access to the server room.",
-            "domain": "social_engineering",
-            "difficulty": "intermediate",
-            "industry_context": "financial"
-        },
-        {
-            "id": "data-1",
-            "title": "The Data Transfer Request",
-            "description": "A senior executive emails you requesting an urgent transfer of sensitive customer data to an external consultant.",
-            "domain": "data_protection",
-            "difficulty": "advanced",
-            "industry_context": "retail"
-        },
-        {
-            "id": "network-1",
-            "title": "The New WiFi Network",
-            "description": "While working at a coffee shop, you notice a new WiFi network with your company's name that doesn't require a password.",
-            "domain": "network_security",
-            "difficulty": "beginner",
-            "industry_context": "remote_work"
-        }
-    ]
 
 # Main application components
 def show_welcome():
@@ -445,31 +455,21 @@ def show_scenario():
                             scenario_description=scenario["title"],
                             is_correct=True
                         )
-                        st.session_state.decision_history.append({
-                            "decision": option["text"],
-                            "feedback": feedback,
-                            "correct": True,
-                            "summary": f"✓ Chose to {option['text'].lower()}"
-                        })
+                        save_decision(scenario["id"], option["text"], feedback, True)
                         
                         # Generate learning moment
                         learning_moment = st.session_state.security_agent.generate_learning_moment(
                             scenario_description=scenario["title"],
                             security_domain=scenario["domain"]
                         )
-                        st.session_state.learning_moments.append(learning_moment)
+                        save_learning_moment(scenario["id"], learning_moment)
                     else:
                         feedback = st.session_state.security_agent.analyze_decision(
                             user_decision=option["text"],
                             scenario_description=scenario["title"],
                             is_correct=False
                         )
-                        st.session_state.decision_history.append({
-                            "decision": option["text"],
-                            "feedback": feedback,
-                            "correct": False,
-                            "summary": f"✗ Chose to {option['text'].lower()}"
-                        })
+                        save_decision(scenario["id"], option["text"], feedback, False)
                     
                     # Move to next decision point
                     scenario["current_decision_index"] = current_index + 1
@@ -485,14 +485,21 @@ def show_scenario():
     with st.sidebar:
         st.subheader("Your Decisions")
         
-        for i, decision in enumerate(st.session_state.decision_history):
-            with st.expander(f"Decision {i+1}"):
-                st.markdown(f"<div class='decision-summary'>{decision.get('summary', 'Made a decision')}</div>", unsafe_allow_html=True)
-                
-                if decision.get("correct", False):
-                    st.markdown("<p class='feedback-positive'>✓ Good choice!</p>", unsafe_allow_html=True)
-                else:
-                    st.markdown("<p class='feedback-negative'>✗ This could be improved</p>", unsafe_allow_html=True)
+        # Get decision history for current scenario
+        scenario_id = scenario["id"]
+        decision_history = st.session_state.scenarios_decision_history.get(scenario_id, [])
+        
+        if decision_history:
+            for i, decision in enumerate(decision_history):
+                with st.expander(f"Decision {i+1}"):
+                    st.markdown(f"<div class='decision-summary'>{decision.get('summary', 'Made a decision')}</div>", unsafe_allow_html=True)
+                    
+                    if decision.get("correct", False):
+                        st.markdown("<p class='feedback-positive'>✓ Good choice!</p>", unsafe_allow_html=True)
+                    else:
+                        st.markdown("<p class='feedback-negative'>✗ This could be improved</p>", unsafe_allow_html=True)
+        else:
+            st.info("No decisions made yet.")
 
 def show_scenario_summary():
     """Display the summary of the completed scenario."""
@@ -505,9 +512,14 @@ def show_scenario_summary():
     st.markdown("<h1 class='main-header'>Scenario Complete!</h1>", unsafe_allow_html=True)
     st.markdown(f"<h2 class='scenario-title'>{scenario['title']} - Summary</h2>", unsafe_allow_html=True)
     
+    # Get decision history for current scenario
+    scenario_id = scenario["id"]
+    decision_history = st.session_state.scenarios_decision_history.get(scenario_id, [])
+    learning_moments = st.session_state.scenarios_learning_moments.get(scenario_id, [])
+    
     # Calculate performance
-    correct_decisions = sum(1 for decision in st.session_state.decision_history if decision.get("correct", False))
-    total_decisions = len(st.session_state.decision_history)
+    correct_decisions = sum(1 for decision in decision_history if decision.get("correct", False))
+    total_decisions = len(decision_history)
     performance_pct = (correct_decisions / total_decisions) * 100 if total_decisions > 0 else 0
     
     # Display performance metrics
@@ -535,34 +547,35 @@ def show_scenario_summary():
     # Display learning moments
     st.markdown("### Key Learning Moments")
     
-    for i, moment in enumerate(st.session_state.learning_moments):
+    for i, moment in enumerate(learning_moments):
         st.markdown(f"<div class='learning-moment'>{moment}</div>", unsafe_allow_html=True)
     
     # Generate assessment questions
-    if "assessment_questions" not in st.session_state:
+    if "assessment_questions" not in scenario:
         with st.spinner("Generating assessment questions..."):
             assessment = st.session_state.security_agent.generate_assessment(
                 scenario_title=scenario["title"],
                 num_questions=3
             )
-            st.session_state.assessment_questions = assessment
+            scenario["assessment_questions"] = assessment
+            st.session_state.current_scenario = scenario
     
     # Display assessment
     st.markdown("### Knowledge Check")
-    st.markdown(st.session_state.assessment_questions)
+    st.markdown(scenario["assessment_questions"], unsafe_allow_html=True)
     
     # Record scenario completion in user profile
-    if "scenario_recorded" not in st.session_state:
+    if "scenario_recorded" not in scenario:
         # Prepare performance data
         performance_data = {
             "points_earned": int(performance_pct),
             "correct_decisions": [
                 {"area": scenario["domain"], "decision": d["decision"]} 
-                for d in st.session_state.decision_history if d.get("correct", False)
+                for d in decision_history if d.get("correct", False)
             ],
             "mistakes": [
                 {"area": scenario["domain"], "decision": d["decision"]} 
-                for d in st.session_state.decision_history if not d.get("correct", False)
+                for d in decision_history if not d.get("correct", False)
             ],
             "skill_impacts": {
                 f"{scenario['domain']}_awareness": 1 if performance_pct >= 70 else 0.5
@@ -575,7 +588,8 @@ def show_scenario_summary():
             performance_data=performance_data
         )
         
-        st.session_state.scenario_recorded = True
+        scenario["scenario_recorded"] = True
+        st.session_state.current_scenario = scenario
     
     # Navigation buttons
     col1, col2 = st.columns(2)

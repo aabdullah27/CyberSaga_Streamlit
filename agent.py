@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from agno.agent import Agent
 from agno.models.groq import Groq
 import json
+import re
 
 # Import prompts
 from prompts import (
@@ -108,25 +109,44 @@ class SecurityGuideAgent:
         
         try:
             response = self.agent.run(prompt)
-            decision_points = json.loads(response.content)
+            content = response.content.strip()
+            
+            # Try to find JSON content within the response
+            json_match = re.search(r'\[\s*{.*}\s*\]', content, re.DOTALL)
+            
+            if json_match:
+                json_str = json_match.group(0)
+                decision_points = json.loads(json_str)
+            else:
+                # If no JSON pattern found, try to parse the entire content
+                # Clean up the content to make it valid JSON
+                # Remove markdown code block markers if present
+                content = re.sub(r'```json|```', '', content)
+                content = content.strip()
+                decision_points = json.loads(content)
             
             # Validate the structure
             if not isinstance(decision_points, list) or len(decision_points) < 1:
+                print("Invalid decision points structure: not a list or empty list")
                 return None
                 
             # Ensure each decision point has the required structure
             for point in decision_points:
                 if not all(key in point for key in ["question", "options"]):
+                    print(f"Invalid decision point: missing required keys - {point}")
                     return None
                 if not isinstance(point["options"], list) or len(point["options"]) < 2:
+                    print(f"Invalid options: not a list or too few options - {point['options']}")
                     return None
                 for option in point["options"]:
                     if not all(key in option for key in ["text", "is_correct"]):
+                        print(f"Invalid option: missing required keys - {option}")
                         return None
             
             return decision_points
         except Exception as e:
             print(f"Error generating decision points: {e}")
+            print(f"Response content: {response.content[:200]}...")
             return None
     
     def analyze_decision(self, user_decision: str, scenario_description: str, is_correct: Optional[bool] = None) -> str:
