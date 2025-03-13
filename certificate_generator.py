@@ -7,7 +7,7 @@ import os
 
 def generate_certificate(user_name, scenario_title, score, completion_date=None):
     """
-    Generate a certificate of completion for a scenario.
+    Generate a visually enhanced certificate of completion with larger, clearer text.
     
     Args:
         user_name (str): Name of the user
@@ -22,18 +22,18 @@ def generate_certificate(user_name, scenario_title, score, completion_date=None)
     if completion_date is None:
         completion_date = datetime.now().strftime("%B %d, %Y")
     
-    # Create a certificate image (landscape orientation)
-    width, height = 1200, 900
-    certificate = Image.new('RGB', (width, height), color=(240, 240, 240))
+    # Create a certificate image (landscape orientation) with higher resolution
+    width, height = 1500, 1100  # Increased size for better clarity
+    certificate = Image.new('RGB', (width, height), color=(255, 255, 255))
     draw = ImageDraw.Draw(certificate)
     
-    # Try to load fonts, fall back to default if not available
+    # Try to load fonts with larger sizes, fall back to default if not available
     try:
-        # For Windows, use Arial or other common fonts
-        title_font = ImageFont.truetype("Arial Bold.ttf", 90)  
-        header_font = ImageFont.truetype("Arial Bold.ttf", 70)  
-        name_font = ImageFont.truetype("Arial Bold.ttf", 80)    
-        body_font = ImageFont.truetype("Arial.ttf", 50)         
+        # For Windows, use Arial or other common fonts with increased sizes
+        title_font = ImageFont.truetype("Arial Bold.ttf", 120)
+        header_font = ImageFont.truetype("Arial Bold.ttf", 95)
+        name_font = ImageFont.truetype("Arial Bold.ttf", 110)
+        body_font = ImageFont.truetype("Arial.ttf", 70)
     except IOError:
         # Fall back to default font
         title_font = ImageFont.load_default()
@@ -41,37 +41,86 @@ def generate_certificate(user_name, scenario_title, score, completion_date=None)
         name_font = ImageFont.load_default()
         body_font = ImageFont.load_default()
     
-    # Add border
-    draw.rectangle([(50, 50), (width-50, height-50)], outline=(0, 100, 0), width=5)
+    # Add simple, clean border (avoiding complex patterns that might blur)
+    border_color = (0, 120, 60)  # Darker green for better visibility
+    draw.rectangle([(40, 40), (width-40, height-40)], outline=border_color, width=10)
     
-    # Add header
-    draw.text((width//2, 120), "CERTIFICATE OF COMPLETION", font=title_font, fill=(0, 100, 0), anchor="mm")
-    draw.text((width//2, 190), "CYBERSAGA TRAINING", font=header_font, fill=(0, 100, 0), anchor="mm")
+    # Add header with high contrast colors
+    header_color = (0, 100, 50)  # Dark green for better readability
+    draw.text((width//2, 150), "CERTIFICATE OF COMPLETION", 
+             font=title_font, fill=header_color, anchor="mm")
     
-    # Add line
-    draw.line([(200, 250), (width-200, 250)], fill=(0, 100, 0), width=3)
+    draw.text((width//2, 250), "CYBERSAGA TRAINING", 
+             font=header_font, fill=header_color, anchor="mm")
     
-    # Add user name
-    draw.text((width//2, 350), "This certifies that", font=body_font, fill=(0, 0, 0), anchor="mm")
-    draw.text((width//2, 420), user_name, font=name_font, fill=(0, 0, 0), anchor="mm")
+    # Add clean horizontal line
+    draw.line([(150, 320), (width-150, 320)], fill=header_color, width=5)
     
-    # Add scenario details
-    draw.text((width//2, 500), "has successfully completed the cybersecurity scenario:", font=body_font, fill=(0, 0, 0), anchor="mm")
-    draw.text((width//2, 570), f'"{scenario_title}"', font=header_font, fill=(0, 100, 0), anchor="mm")
+    # Add user name with clear, large text
+    draw.text((width//2, 420), "This certifies that", 
+             font=body_font, fill=(0, 0, 0), anchor="mm")
     
-    # Add score
+    # Name with high contrast
+    draw.text((width//2, 520), user_name, 
+             font=name_font, fill=(0, 0, 0), anchor="mm")
+    
+    # Add scenario details with larger spacing
+    draw.text((width//2, 620), "has successfully completed the cybersecurity scenario:", 
+             font=body_font, fill=(0, 0, 0), anchor="mm")
+    
+    # Break long scenario titles into multiple lines if needed
+    words = scenario_title.split()
+    lines = []
+    current_line = []
+    
+    for word in words:
+        current_line.append(word)
+        test_line = " ".join(current_line)
+        if header_font.getlength(f'"{test_line}"') > width - 300:
+            # Remove the last word and complete this line
+            current_line.pop()
+            lines.append(" ".join(current_line))
+            current_line = [word]  # Start a new line with the overflow word
+    
+    # Add any remaining words
+    if current_line:
+        lines.append(" ".join(current_line))
+    
+    # Render scenario title (possibly in multiple lines)
+    if len(lines) == 1:
+        # Single line, render normally
+        draw.text((width//2, 720), f'"{scenario_title}"', 
+                 font=header_font, fill=header_color, anchor="mm")
+    else:
+        # Multiple lines, calculate vertical positioning
+        start_y = 700
+        line_height = 100
+        for i, line in enumerate(lines):
+            draw.text((width//2, start_y + i * line_height), f'"{line}"' if i == 0 else line + ('"' if i == len(lines)-1 else ""), 
+                     font=header_font, fill=header_color, anchor="mm")
+    
+    # Calculate vertical position based on whether title has multiple lines
+    score_y = 820 if len(lines) == 1 else (700 + len(lines) * 100)
+    
+    # Add score with clear text
     score_text = f"with a score of {score:.0f}%"
-    draw.text((width//2, 640), score_text, font=body_font, fill=(0, 0, 0), anchor="mm")
+    draw.text((width//2, score_y), score_text, 
+             font=body_font, fill=(0, 0, 0), anchor="mm")
     
-    # Add date
-    draw.text((width//2, 720), f"Date: {completion_date}", font=body_font, fill=(0, 0, 0), anchor="mm")
+    # Add date with clear formatting
+    date_y = score_y + 100
+    date_text = f"Date: {completion_date}"
+    draw.text((width//2, date_y), date_text, 
+             font=body_font, fill=(0, 0, 0), anchor="mm")
     
     # Add CyberSaga signature
-    draw.text((width//2, 780), "CyberSaga Training Program", font=body_font, fill=(0, 0, 0), anchor="mm")
+    sign_y = date_y + 100
+    draw.text((width//2, sign_y), "CyberSaga Training Program", 
+             font=body_font, fill=header_color, anchor="mm")
     
-    # Convert to base64 for embedding in HTML
+    # Convert to high-quality PNG
     buffered = BytesIO()
-    certificate.save(buffered, format="PNG")
+    certificate.save(buffered, format="PNG", quality=95)  # Higher quality
     img_str = base64.b64encode(buffered.getvalue()).decode()
     
     return img_str
@@ -115,29 +164,36 @@ def show_certificate_page():
         completion_date=datetime.now().strftime("%B %d, %Y")
     )
     
-    # Display certificate
+    # Display certificate with improved styling for clarity
     st.markdown(
         f"""
         <div style="text-align: center; margin: 20px 0;">
-            <img src="data:image/png;base64,{certificate_img}" style="max-width: 100%; border: 1px solid #ccc;">
+            <img src="data:image/png;base64,{certificate_img}" 
+                 style="max-width: 100%; border: 2px solid #ddd;">
         </div>
         """,
         unsafe_allow_html=True
     )
     
-    # Download button
-    st.download_button(
-        label="Download Certificate",
-        data=base64.b64decode(certificate_img),
-        file_name=f"CyberSaga_Certificate_{scenario['title'].replace(' ', '_')}.png",
-        mime="image/png"
-    )
+    # Download button with better styling
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.download_button(
+            label="⬇️ Download Certificate",
+            data=base64.b64decode(certificate_img),
+            file_name=f"CyberSaga_Certificate_{scenario['title'].replace(' ', '_')}.png",
+            mime="image/png",
+            use_container_width=True
+        )
+    
+    # Add some space
+    st.write("")
     
     # Navigation buttons
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("Choose Another Scenario"):
+        if st.button("Choose Another Scenario", use_container_width=True):
             # Reset scenario state
             if "current_assessment" in st.session_state:
                 del st.session_state.current_assessment
@@ -157,7 +213,7 @@ def show_certificate_page():
             st.rerun()
     
     with col2:
-        if st.button("View Progress Dashboard"):
+        if st.button("View Progress Dashboard", use_container_width=True):
             # Reset scenario state
             if "current_assessment" in st.session_state:
                 del st.session_state.current_assessment
