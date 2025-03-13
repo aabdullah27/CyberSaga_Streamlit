@@ -3,24 +3,17 @@ User profile management for CyberSaga application.
 This module handles user profiles, progress tracking, and skill assessment.
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 import json
 import os
 from datetime import datetime
 
 
 class UserProfile:
-    """
-    Manages user profiles and progress tracking for CyberSaga.
-    """
+    """Class to manage user profile data."""
     
     def __init__(self, user_id: str = "default"):
-        """
-        Initialize a user profile.
-        
-        Args:
-            user_id: Unique identifier for the user
-        """
+        """Initialize with default profile structure."""
         self.user_id = user_id
         self.profile = {
             "user_id": user_id,
@@ -31,33 +24,24 @@ class UserProfile:
                 "email": "",
                 "industry": "",
                 "role": "",
-                "experience_level": "beginner"  # beginner, intermediate, advanced
+                "experience_level": "beginner"
             },
             "progress": {
                 "completed_scenarios": [],
-                "current_scenario": None,
+                "total_points": 0,
+                "scenarios_started": 0,
+                "scenarios_completed": 0,
                 "skill_levels": {
                     "phishing_awareness": 0,
                     "ransomware_prevention": 0,
                     "social_engineering_defense": 0,
                     "data_protection": 0,
-                    "network_security": 0,
-                    "incident_response": 0,
-                    "password_management": 0,
-                    "secure_communication": 0
-                },
-                "achievements": [],
-                "total_points": 0
+                    "network_security": 0
+                }
             },
             "preferences": {
-                "learning_style": "narrative",  # narrative, technical, practical
-                "difficulty": "adaptive",  # easy, moderate, challenging, adaptive
-                "session_duration": 15  # minutes
-            },
-            "assessment": {
-                "knowledge_gaps": [],
-                "strengths": [],
-                "recommended_focus_areas": []
+                "difficulty": "adaptive",
+                "focus_areas": []
             }
         }
         
@@ -91,146 +75,104 @@ class UserProfile:
         except IOError as e:
             print(f"Error saving profile: {e}")
     
-    def update_personal_info(self, **kwargs) -> None:
-        """
-        Update personal information in the user profile.
-        
-        Args:
-            **kwargs: Key-value pairs of personal information to update
-        """
-        for key, value in kwargs.items():
-            if key in self.profile["personal_info"]:
-                self.profile["personal_info"][key] = value
+    def update_personal_info(self, name: str, email: str, industry: str, role: str, experience_level: str):
+        """Update the user's personal information."""
+        self.profile["personal_info"]["name"] = name
+        self.profile["personal_info"]["email"] = email
+        self.profile["personal_info"]["industry"] = industry
+        self.profile["personal_info"]["role"] = role
+        self.profile["personal_info"]["experience_level"] = experience_level
         self.save()
     
-    def update_preferences(self, **kwargs) -> None:
+    def record_scenario_completion(self, scenario_id: str, performance_data: Dict[str, Any]):
         """
-        Update user preferences.
+        Record the completion of a scenario with performance data.
         
         Args:
-            **kwargs: Key-value pairs of preferences to update
+            scenario_id: The ID of the completed scenario
+            performance_data: Dict containing performance metrics including:
+                - points_earned: Points earned in this scenario
+                - correct_decisions: List of correct decisions made
+                - mistakes: List of incorrect decisions made
         """
-        for key, value in kwargs.items():
-            if key in self.profile["preferences"]:
-                self.profile["preferences"][key] = value
-        self.save()
-    
-    def record_scenario_completion(self, scenario_id: str, performance_data: Dict[str, Any]) -> None:
-        """
-        Record the completion of a scenario and update skills accordingly.
+        # Extract scenario details from the ID
+        scenario_parts = scenario_id.split("-")
+        domain = scenario_parts[0] if len(scenario_parts) > 0 else "general"
         
-        Args:
-            scenario_id: ID of the completed scenario
-            performance_data: Data about user performance in the scenario
-        """
-        # Add to completed scenarios
-        completion_record = {
-            "scenario_id": scenario_id,
-            "completed_at": datetime.now().isoformat(),
-            "performance": performance_data
+        # Create completion record
+        completion = {
+            "id": scenario_id,
+            "title": performance_data.get("title", "Unknown Scenario"),
+            "domain": performance_data.get("domain", "general"),
+            "completion_date": datetime.now().isoformat(),
+            "points_earned": performance_data.get("points_earned", 0),
+            "correct_decisions": performance_data.get("correct_decisions", 0),
+            "total_decisions": performance_data.get("total_decisions", 0),
+            "assessment_score": performance_data.get("assessment_score", 0)
         }
         
-        self.profile["progress"]["completed_scenarios"].append(completion_record)
-        self.profile["progress"]["current_scenario"] = None
+        # Add to completed scenarios list
+        self.profile["progress"]["completed_scenarios"].append(completion)
         
-        # Update skill levels based on performance
-        if "skill_impacts" in performance_data:
-            for skill, impact in performance_data["skill_impacts"].items():
-                if skill in self.profile["progress"]["skill_levels"]:
-                    current_level = self.profile["progress"]["skill_levels"][skill]
-                    self.profile["progress"]["skill_levels"][skill] = max(0, min(10, current_level + impact))
+        # Update overall progress metrics
+        self.profile["progress"]["total_points"] += performance_data.get("points_earned", 0)
         
-        # Update total points
-        if "points_earned" in performance_data:
-            self.profile["progress"]["total_points"] += performance_data["points_earned"]
-        
-        # Update assessment based on performance
-        self._update_assessment(performance_data)
+        # Ensure scenarios_completed exists
+        if "scenarios_completed" not in self.profile["progress"]:
+            self.profile["progress"]["scenarios_completed"] = 0
+            
+        self.profile["progress"]["scenarios_completed"] += 1
         
         self.save()
     
-    def set_current_scenario(self, scenario_id: str) -> None:
+    def get_recommended_scenarios(self, available_scenarios: list, count: int = 3) -> list:
         """
-        Set the current active scenario for the user.
+        Get recommended scenarios based on user profile and past performance.
         
         Args:
-            scenario_id: ID of the current scenario
-        """
-        self.profile["progress"]["current_scenario"] = scenario_id
-        self.save()
-    
-    def _update_assessment(self, performance_data: Dict[str, Any]) -> None:
-        """
-        Update the user's knowledge assessment based on scenario performance.
-        
-        Args:
-            performance_data: Data about user performance in a scenario
-        """
-        # Update knowledge gaps
-        if "mistakes" in performance_data and performance_data["mistakes"]:
-            for mistake in performance_data["mistakes"]:
-                if mistake["area"] not in self.profile["assessment"]["knowledge_gaps"]:
-                    self.profile["assessment"]["knowledge_gaps"].append(mistake["area"])
-        
-        # Update strengths
-        if "correct_decisions" in performance_data and performance_data["correct_decisions"]:
-            for decision in performance_data["correct_decisions"]:
-                if decision["area"] not in self.profile["assessment"]["strengths"]:
-                    self.profile["assessment"]["strengths"].append(decision["area"])
-        
-        # Update recommended focus areas based on gaps and strengths
-        self._calculate_recommended_focus_areas()
-    
-    def _calculate_recommended_focus_areas(self) -> None:
-        """Calculate recommended focus areas based on current assessment."""
-        # Simple algorithm: prioritize areas with gaps that aren't strengths
-        focus_areas = []
-        
-        for gap in self.profile["assessment"]["knowledge_gaps"]:
-            if gap not in self.profile["assessment"]["strengths"]:
-                focus_areas.append(gap)
-        
-        # Limit to top 3 focus areas
-        self.profile["assessment"]["recommended_focus_areas"] = focus_areas[:3]
-    
-    def get_skill_level(self, skill: str) -> int:
-        """
-        Get the user's level in a specific skill.
-        
-        Args:
-            skill: The skill to check
+            available_scenarios: List of available scenarios
+            count: Number of recommendations to return
             
         Returns:
-            Skill level from 0-10
+            List of recommended scenario IDs
         """
-        return self.profile["progress"]["skill_levels"].get(skill, 0)
-    
-    def get_overall_skill_level(self) -> str:
-        """
-        Get the user's overall skill level category.
+        # Get completed scenario IDs
+        completed_ids = [s["scenario_id"] for s in self.profile["progress"]["completed_scenarios"]]
         
-        Returns:
-            Skill level category (beginner, intermediate, advanced)
-        """
-        # Calculate average skill level
-        skill_values = self.profile["progress"]["skill_levels"].values()
-        if not skill_values:
-            return "beginner"
+        # Filter out completed scenarios
+        available = [s for s in available_scenarios if s["id"] not in completed_ids]
         
-        avg_skill = sum(skill_values) / len(skill_values)
+        if not available:
+            return []
         
-        if avg_skill < 3:
-            return "beginner"
-        elif avg_skill < 7:
-            return "intermediate"
-        else:
-            return "advanced"
-    
-    def get_recommended_scenarios(self) -> List[str]:
-        """
-        Get recommended scenario types based on user assessment.
+        # Identify weak areas based on mistakes
+        mistake_domains = {}
+        for completion in self.profile["progress"]["completed_scenarios"]:
+            domain = completion.get("domain", "general")
+            mistakes = len(completion.get("mistakes", []))
+            
+            if domain not in mistake_domains:
+                mistake_domains[domain] = 0
+            
+            mistake_domains[domain] += mistakes
         
-        Returns:
-            List of recommended scenario types
-        """
-        return self.profile["assessment"]["recommended_focus_areas"]
+        # Sort domains by number of mistakes (descending)
+        weak_domains = sorted(mistake_domains.items(), key=lambda x: x[1], reverse=True)
+        
+        # Prioritize scenarios in weak domains
+        recommendations = []
+        
+        # First, add scenarios from weak domains
+        for domain, _ in weak_domains:
+            domain_scenarios = [s for s in available if s["domain"] == domain]
+            recommendations.extend(domain_scenarios)
+            
+            if len(recommendations) >= count:
+                break
+        
+        # If we still need more recommendations, add other available scenarios
+        if len(recommendations) < count:
+            remaining = [s for s in available if s not in recommendations]
+            recommendations.extend(remaining[:count - len(recommendations)])
+        
+        return [s["id"] for s in recommendations[:count]]

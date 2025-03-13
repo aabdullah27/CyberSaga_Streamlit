@@ -25,12 +25,14 @@ Your scenario should:
 3. Present a cybersecurity challenge that requires decision-making
 4. Be educational while remaining engaging
 5. Be written in second person ("you")
-6. Be approximately 200-300 words
+6. Be approximately 150-200 words
 
-Format the scenario as HTML with appropriate paragraph breaks for readability. Include the following sections:
+Format the scenario as HTML with appropriate paragraph breaks for readability. Include the following sections ONLY:
+- A heading with the threat type (e.g., "Phishing Threat Scenario")
 - A brief introduction to the type of threat (bullet points of common attack vectors)
 - An "Initial Situation" heading followed by the scenario description
-- A "Decision Point 1" heading that sets up the first decision
+
+DO NOT include any decision points or questions - these will be generated separately.
 
 Make sure your content is well-structured with clear headings and paragraphs for optimal readability in both light and dark mode interfaces.
 """
@@ -77,6 +79,36 @@ IMPORTANT: Return ONLY the decision points in the following JSON format with no 
     ]
   }}
 ]
+
+Ensure the options are realistic, relevant to the {industry} industry, and the correct answer represents best security practices.
+"""
+
+# Prompt for generating a single decision point
+DECISION_POINT_PROMPT = """
+Create a single decision point (question #{decision_number}) for a cybersecurity scenario about {scenario_title} in the {scenario_domain} domain.
+This is decision point #{decision_number} in the scenario.
+
+The decision point should:
+1. Present a clear question that follows naturally from the previous context
+2. Offer 4 possible options/choices
+3. Clearly mark which option is correct (only one option should be correct)
+4. Be appropriate for someone in the {industry} industry with a {role} role and {experience_level} experience level
+5. If this is a later decision point (3+), increase the complexity/difficulty
+
+Format the decision point as HTML with a clear heading "Decision Point {decision_number}" and present the options as bullet points.
+
+IMPORTANT: Return ONLY the decision point in the following JSON format with no additional text, comments, or explanation:
+
+{{
+  "question": "What action should you take when...",
+  "options": [
+    {{"text": "Option 1 description", "is_correct": false}},
+    {{"text": "Option 2 description", "is_correct": true}},
+    {{"text": "Option 3 description", "is_correct": false}},
+    {{"text": "Option 4 description", "is_correct": false}}
+  ],
+  "html_content": "<h3>Decision Point {decision_number}</h3><p>What action should you take when...</p><ul><li>Option 1 description</li><li>Option 2 description</li><li>Option 3 description</li><li>Option 4 description</li></ul><p>Choose your response carefully, as it may impact the security of your organization.</p>"
+}}
 
 Ensure the options are realistic, relevant to the {industry} industry, and the correct answer represents best security practices.
 """
@@ -138,4 +170,44 @@ Provide 3-5 specific, actionable recommendations that:
 4. Include specific resources or exercises when appropriate
 
 Format the recommendations as a bulleted HTML list for readability.
+"""
+
+# Prompt for generating knowledge assessment
+KNOWLEDGE_ASSESSMENT_PROMPT = """\
+Create a knowledge assessment for a cybersecurity scenario with the following details:
+
+Scenario Title: {scenario_title}
+Domain: {scenario_domain}
+User's Industry: {user_industry}
+User's Role: {user_role}
+User's Experience Level: {experience_level}
+Number of Questions: {num_questions}
+
+Generate exactly {num_questions} multiple-choice questions that test the user's understanding of cybersecurity concepts related to the scenario domain. Each question should have 4 options with exactly one correct answer.
+
+The assessment should be tailored to the user's industry, role, and experience level.
+
+Format your response as a JSON object with the following structure:
+{{
+  "questions": [
+    {{
+      "question": "Question text here?",
+      "options": [
+        {{"text": "Option 1", "is_correct": false}},
+        {{"text": "Option 2", "is_correct": true}},
+        {{"text": "Option 3", "is_correct": false}},
+        {{"text": "Option 4", "is_correct": false}}
+      ],
+      "explanation": "Explanation of why the correct answer is right and why others are wrong."
+    }},
+    // More questions...
+  ]
+}}
+
+Make sure the questions:
+1. Are relevant to the scenario domain
+2. Test practical knowledge that would be useful in the user's role
+3. Cover different aspects of the domain (prevention, detection, response, etc.)
+4. Are at an appropriate difficulty level for the user's experience
+5. Include clear explanations for each correct answer
 """
