@@ -16,74 +16,108 @@ knowledge gaps and provide contextual explanations when users make security mist
 
 # Prompt for generating a new cybersecurity scenario
 SCENARIO_GENERATION_PROMPT = """
-Create an immersive cybersecurity scenario for a user who works as {role} in the {industry} industry 
-with a {skill_level} level of cybersecurity knowledge.
+Create an engaging cybersecurity scenario focused on {security_domain} threats, specifically {threat_type}.
+The scenario should be tailored for someone in the {industry} industry with a {role} role and {experience_level} experience level.
 
-The scenario should:
-1. Be realistic and relevant to the user's industry
-2. Focus on the {security_domain} domain
-3. Present a narrative with clear decision points
-4. Include realistic consequences for different choices
-5. Incorporate current threat intelligence about {threat_type}
-6. Be engaging and educational
+Your scenario should:
+1. Begin with a realistic situation that the user might encounter
+2. Include specific details that make it relevant to their industry and role
+3. Present a cybersecurity challenge that requires decision-making
+4. Be educational while remaining engaging
+5. Be written in second person ("you")
+6. Be approximately 200-300 words
 
-Begin the scenario with a brief introduction to set the context, then present the initial situation 
-that requires the user to make a security decision.
+Format the scenario as HTML with appropriate paragraph breaks for readability. Include the following sections:
+- A brief introduction to the type of threat (bullet points of common attack vectors)
+- An "Initial Situation" heading followed by the scenario description
+- A "Decision Point 1" heading that sets up the first decision
+
+Make sure your content is well-structured with clear headings and paragraphs for optimal readability in both light and dark mode interfaces.
+"""
+
+# New prompt for generating decision points
+DECISION_POINTS_PROMPT = """
+Create a series of 3 decision points for a cybersecurity scenario titled "{scenario_title}" in the {scenario_domain} domain.
+The decision points should be appropriate for someone in the {industry} industry with a {role} role and {experience_level} experience level.
+
+Each decision point should:
+1. Present a clear question related to the scenario
+2. Offer 4 possible options/choices
+3. Clearly mark which option is correct (only one option should be correct)
+4. Increase in complexity/difficulty as they progress
+
+Return the decision points in the following JSON format:
+[
+  {{
+    "question": "What action should you take when...",
+    "options": [
+      {{"text": "Option 1 description", "is_correct": false}},
+      {{"text": "Option 2 description", "is_correct": true}},
+      {{"text": "Option 3 description", "is_correct": false}},
+      {{"text": "Option 4 description", "is_correct": false}}
+    ]
+  }},
+  // Additional decision points...
+]
+
+Ensure the options are realistic and the correct answer represents best security practices.
 """
 
 # Prompt for analyzing user decisions
 DECISION_ANALYSIS_PROMPT = """
-Analyze the user's decision to {user_decision} in response to the {scenario_description} scenario.
+The user has made the following decision in response to a cybersecurity scenario about {scenario_description}:
 
-Consider:
-1. Whether this decision follows cybersecurity best practices
-2. Potential immediate and long-term consequences
-3. Alternative approaches that might be more secure
-4. The specific security principles relevant to this situation
+User's decision: {user_decision}
 
-Provide feedback that is educational but not judgmental, and suggest how the user might improve 
-their security decision-making in similar situations.
+This decision is {correctness}.
+
+Provide a brief, concise analysis of this decision (50-75 words). Your analysis should:
+1. Explain why the decision was good or problematic
+2. Reference specific security principles relevant to the situation
+3. Be educational without being condescending
+4. Focus on practical implications
 """
 
 # Prompt for generating learning moments
 LEARNING_MOMENT_PROMPT = """
-Create a brief "learning moment" that connects the user's experience in the {scenario_description} 
-scenario to practical cybersecurity principles.
+Create a concise learning moment related to the cybersecurity scenario about {scenario_description} in the {security_domain} domain.
 
 The learning moment should:
-1. Highlight the key security concept(s) demonstrated in this scenario
-2. Explain why certain practices are more secure than others
-3. Provide a real-world example of how this security principle has been relevant
-4. Offer a practical tip the user can apply in their daily digital interactions
+1. Highlight 1-2 key security principles relevant to the scenario
+2. Explain why these principles matter in practical terms
+3. Provide 2-3 specific, actionable recommendations for improving security practices
+4. Be approximately 100-150 words
+5. Be formatted as HTML for better readability
 
-Keep the explanation concise, engaging, and directly relevant to the user's industry and role.
+Make the content educational, memorable, and directly applicable to real-world situations.
 """
 
 # Prompt for assessment questions
 ASSESSMENT_PROMPT = """
-Generate {num_questions} multiple-choice assessment questions to evaluate the user's understanding 
-of the cybersecurity concepts covered in the {scenario_title} scenario.
+Create {num_questions} assessment questions related to the cybersecurity scenario titled "{scenario_title}".
 
-Each question should:
-1. Test comprehension of a specific security principle
-2. Have 4 possible answers with only one correct option
-3. Include a brief explanation of why the correct answer is right
-4. Be relevant to the user's industry context
+The questions should:
+1. Test understanding of key security concepts from the scenario
+2. Include a mix of multiple-choice and short answer formats
+3. Increase in difficulty
+4. Be formatted with clear numbering and spacing
 
-Vary the difficulty based on the user's current skill level of {skill_level}.
+Format the assessment as HTML for better readability.
 """
 
-# Prompt for generating next scenario recommendations
+# Prompt for generating recommendations
 RECOMMENDATION_PROMPT = """
-Based on the user's performance in previous scenarios and identified knowledge gaps in {gap_areas},
-recommend 3 new cybersecurity scenarios that would help strengthen their understanding.
+Based on the user's performance across cybersecurity scenarios, generate personalized recommendations 
+for improving their security knowledge and practices.
 
-For each recommendation:
-1. Provide a compelling title
-2. Include a brief description of the scenario
-3. Explain which specific security skills it would help develop
-4. Connect it to the user's industry context of {industry}
+The user has shown strengths in: {strengths}
+The user has shown knowledge gaps in: {knowledge_gaps}
 
-Prioritize scenarios that address the user's most significant knowledge gaps while maintaining
-an engaging progression of difficulty.
+Provide 3-5 specific, actionable recommendations that:
+1. Address the identified knowledge gaps
+2. Build upon existing strengths
+3. Are relevant to their industry ({industry}) and role ({role})
+4. Include specific resources or exercises when appropriate
+
+Format the recommendations as a bulleted HTML list for readability.
 """

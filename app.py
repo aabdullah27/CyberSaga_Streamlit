@@ -71,11 +71,13 @@ def load_css():
             padding: 1rem;
             border-radius: 5px;
             border-left: 5px solid #0066cc;
+            color: #000000;
         }
         .decision-point {
             font-size: 1.2rem;
             font-weight: bold;
             margin-bottom: 1rem;
+            color: #000000;
         }
         .learning-moment {
             background-color: #e6f7ff;
@@ -83,6 +85,7 @@ def load_css():
             border-radius: 5px;
             margin-bottom: 1rem;
             border-left: 5px solid #00cccc;
+            color: #000000;
         }
         .feedback-positive {
             color: #00cc66;
@@ -97,6 +100,31 @@ def load_css():
             padding: 1rem;
             border-radius: 5px;
             margin-top: 2rem;
+        }
+        .decision-summary {
+            font-size: 0.9rem;
+            color: #333333;
+            background-color: #f5f5f5;
+            padding: 0.5rem;
+            border-radius: 3px;
+            margin-bottom: 0.5rem;
+        }
+        /* Dark mode compatibility */
+        @media (prefers-color-scheme: dark) {
+            .scenario-description, .decision-point, .learning-moment, .decision-summary {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: #ffffff;
+            }
+            .scenario-description {
+                background-color: rgba(0, 102, 204, 0.2);
+            }
+            .learning-moment {
+                background-color: rgba(0, 204, 204, 0.2);
+            }
+            .decision-summary {
+                background-color: rgba(255, 255, 255, 0.15);
+                color: #ffffff;
+            }
         }
         </style>
     """, unsafe_allow_html=True)
@@ -329,42 +357,61 @@ def show_scenario():
     # First time in this scenario, generate content
     if "narrative" not in scenario:
         with st.spinner("Generating your personalized cybersecurity scenario..."):
+            # Get user profile data for personalization
+            user_profile = st.session_state.user_profile.profile
+            industry = user_profile["personal_info"]["industry"]
+            role = user_profile["personal_info"]["role"]
+            experience = user_profile["personal_info"]["experience_level"]
+            
             # Generate scenario narrative
             narrative = st.session_state.security_agent.generate_scenario(
                 security_domain=scenario["domain"],
-                threat_type=scenario["domain"]  # Using domain as threat type for simplicity
+                threat_type=scenario["domain"],
+                industry=industry,
+                role=role,
+                experience_level=experience
             )
             
-            # Generate decision points (in a real app, these would come from the AI)
-            decision_points = [
-                {
-                    "question": "What do you do with the suspicious email?",
-                    "options": [
-                        {"text": "Click the link to verify your account", "is_correct": False},
-                        {"text": "Forward it to your IT security team", "is_correct": True},
-                        {"text": "Reply asking for more information", "is_correct": False},
-                        {"text": "Delete it without reporting", "is_correct": False}
-                    ]
-                },
-                {
-                    "question": "The IT team confirms it's a phishing attempt. What's your next step?",
-                    "options": [
-                        {"text": "Do nothing, you already reported it", "is_correct": False},
-                        {"text": "Alert your colleagues about the phishing attempt", "is_correct": True},
-                        {"text": "Change only your email password", "is_correct": False},
-                        {"text": "Click the link to see what happens", "is_correct": False}
-                    ]
-                },
-                {
-                    "question": "Your company decides to improve security awareness. What would you recommend?",
-                    "options": [
-                        {"text": "Nothing, one incident isn't concerning", "is_correct": False},
-                        {"text": "Block all external emails", "is_correct": False},
-                        {"text": "Implement regular phishing simulation training", "is_correct": True},
-                        {"text": "Restrict email access to management only", "is_correct": False}
-                    ]
-                }
-            ]
+            # Generate dynamic decision points based on user profile and scenario
+            decision_points = st.session_state.security_agent.generate_decision_points(
+                scenario_title=scenario["title"],
+                scenario_domain=scenario["domain"],
+                user_industry=industry,
+                user_role=role,
+                experience_level=experience
+            )
+            
+            # If AI generation fails, use fallback decision points
+            if not decision_points or len(decision_points) < 2:
+                decision_points = [
+                    {
+                        "question": f"What do you do with the suspicious {scenario['domain']} attempt?",
+                        "options": [
+                            {"text": "Engage directly with the suspicious content", "is_correct": False},
+                            {"text": "Report it to your security team", "is_correct": True},
+                            {"text": "Request more information from the sender", "is_correct": False},
+                            {"text": "Ignore it without reporting", "is_correct": False}
+                        ]
+                    },
+                    {
+                        "question": f"After identifying this as a {scenario['domain']} threat, what's your next step?",
+                        "options": [
+                            {"text": "Take no further action", "is_correct": False},
+                            {"text": "Alert colleagues about the threat", "is_correct": True},
+                            {"text": "Change only your primary password", "is_correct": False},
+                            {"text": "Test the suspicious content in a sandbox", "is_correct": False}
+                        ]
+                    },
+                    {
+                        "question": f"How would you improve your organization's {scenario['domain']} defenses?",
+                        "options": [
+                            {"text": "No changes needed", "is_correct": False},
+                            {"text": "Implement extreme restrictions", "is_correct": False},
+                            {"text": "Deploy regular security training", "is_correct": True},
+                            {"text": "Limit access to essential personnel only", "is_correct": False}
+                        ]
+                    }
+                ]
             
             # Save to scenario
             scenario["narrative"] = narrative
@@ -395,28 +442,33 @@ def show_scenario():
                     if is_correct:
                         feedback = st.session_state.security_agent.analyze_decision(
                             user_decision=option["text"],
-                            scenario_description=scenario["title"]
+                            scenario_description=scenario["title"],
+                            is_correct=True
                         )
                         st.session_state.decision_history.append({
                             "decision": option["text"],
                             "feedback": feedback,
-                            "correct": True
+                            "correct": True,
+                            "summary": f"✓ Chose to {option['text'].lower()}"
                         })
                         
                         # Generate learning moment
                         learning_moment = st.session_state.security_agent.generate_learning_moment(
-                            scenario_description=scenario["title"]
+                            scenario_description=scenario["title"],
+                            security_domain=scenario["domain"]
                         )
                         st.session_state.learning_moments.append(learning_moment)
                     else:
                         feedback = st.session_state.security_agent.analyze_decision(
                             user_decision=option["text"],
-                            scenario_description=scenario["title"]
+                            scenario_description=scenario["title"],
+                            is_correct=False
                         )
                         st.session_state.decision_history.append({
                             "decision": option["text"],
                             "feedback": feedback,
-                            "correct": False
+                            "correct": False,
+                            "summary": f"✗ Chose to {option['text'].lower()}"
                         })
                     
                     # Move to next decision point
@@ -435,8 +487,7 @@ def show_scenario():
         
         for i, decision in enumerate(st.session_state.decision_history):
             with st.expander(f"Decision {i+1}"):
-                st.markdown(f"**You chose:** {decision['decision']}")
-                st.markdown(f"**Feedback:** {decision['feedback']}")
+                st.markdown(f"<div class='decision-summary'>{decision.get('summary', 'Made a decision')}</div>", unsafe_allow_html=True)
                 
                 if decision.get("correct", False):
                     st.markdown("<p class='feedback-positive'>✓ Good choice!</p>", unsafe_allow_html=True)
