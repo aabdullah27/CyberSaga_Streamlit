@@ -3,7 +3,6 @@ AI Agent module for CyberSaga application.
 This module contains the SecurityGuideAgent class that handles scenario generation and user interaction.
 """
 
-import os
 from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
 from agno.agent import Agent

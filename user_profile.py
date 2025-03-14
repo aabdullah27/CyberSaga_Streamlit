@@ -3,7 +3,7 @@ User profile management for CyberSaga application.
 This module handles user profiles, progress tracking, and skill assessment.
 """
 
-from typing import Dict, List, Any
+from typing import Dict, Any
 import json
 import os
 from datetime import datetime

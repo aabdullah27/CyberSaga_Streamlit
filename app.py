@@ -4,11 +4,8 @@ Main Streamlit application file
 """
 
 import streamlit as st
-import os
 from dotenv import load_dotenv
-import json
 from datetime import datetime
-import uuid
 import certificate_generator
 
 # Import custom modules

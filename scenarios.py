@@ -3,7 +3,7 @@ Scenarios module for CyberSaga application.
 This module contains classes for different types of cybersecurity scenarios.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 from dataclasses import dataclass
 
 

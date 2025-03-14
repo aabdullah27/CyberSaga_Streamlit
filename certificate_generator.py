@@ -3,7 +3,6 @@ import base64
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 from datetime import datetime
-import os
 
 def generate_certificate(user_name, scenario_title, score, completion_date=None):
     """
@@ -30,10 +29,10 @@ def generate_certificate(user_name, scenario_title, score, completion_date=None)
     # Try to load fonts with properly sized fonts, fall back to default if not available
     try:
         # For Windows, use Arial or other common fonts with increased sizes
-        title_font = ImageFont.truetype("Arial Bold.ttf", 160)
-        header_font = ImageFont.truetype("Arial Bold.ttf", 130)
-        name_font = ImageFont.truetype("Arial Bold.ttf", 160)
-        body_font = ImageFont.truetype("Arial.ttf", 95)
+        title_font = ImageFont.truetype("Arial Bold.ttf", 280)  # Was 160
+        header_font = ImageFont.truetype("Arial Bold.ttf", 220)  # Was 130
+        name_font = ImageFont.truetype("Arial Bold.ttf", 280)  # Was 160
+        body_font = ImageFont.truetype("Arial.ttf", 160)  # Was 95
     except IOError:
         try:
             # Try system font locations for Linux/macOS
