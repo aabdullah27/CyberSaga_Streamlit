@@ -23,50 +23,88 @@ def generate_certificate(user_name, scenario_title, score, completion_date=None)
         completion_date = datetime.now().strftime("%B %d, %Y")
     
     # Create a certificate image (landscape orientation) with higher resolution
-    width, height = 1500, 1100  # Increased size for better clarity
-    certificate = Image.new('RGB', (width, height), color=(255, 255, 255))
+    width, height = 2000, 1400  # Further increased size for better visibility
+    certificate = Image.new('RGB', (width, height), color=(252, 252, 252))
     draw = ImageDraw.Draw(certificate)
     
-    # Try to load fonts with larger sizes, fall back to default if not available
+    # Try to load fonts with properly sized fonts, fall back to default if not available
     try:
         # For Windows, use Arial or other common fonts with increased sizes
-        title_font = ImageFont.truetype("Arial Bold.ttf", 120)
-        header_font = ImageFont.truetype("Arial Bold.ttf", 95)
-        name_font = ImageFont.truetype("Arial Bold.ttf", 110)
-        body_font = ImageFont.truetype("Arial.ttf", 70)
+        title_font = ImageFont.truetype("Arial Bold.ttf", 160)
+        header_font = ImageFont.truetype("Arial Bold.ttf", 130)
+        name_font = ImageFont.truetype("Arial Bold.ttf", 160)
+        body_font = ImageFont.truetype("Arial.ttf", 95)
     except IOError:
-        # Fall back to default font
-        title_font = ImageFont.load_default()
-        header_font = ImageFont.load_default()
-        name_font = ImageFont.load_default()
-        body_font = ImageFont.load_default()
+        try:
+            # Try system font locations for Linux/macOS
+            title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 160)
+            header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 130)
+            name_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 160)
+            body_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 95)
+        except IOError:
+            # Final fallback to default
+            title_font = ImageFont.load_default()
+            header_font = ImageFont.load_default()
+            name_font = ImageFont.load_default()
+            body_font = ImageFont.load_default()
     
-    # Add simple, clean border (avoiding complex patterns that might blur)
-    border_color = (0, 120, 60)  # Darker green for better visibility
-    draw.rectangle([(40, 40), (width-40, height-40)], outline=border_color, width=10)
+    # Add decorative border
+    border_width = 25
+    outer_border_color = (0, 100, 50)  # Dark green for main border
+    inner_border_color = (20, 140, 70)  # Slightly lighter green for inner accent
+    
+    # Outer border (thicker)
+    draw.rectangle([(0, 0), (width, height)], outline=outer_border_color, width=border_width)
+    
+    # Inner border (thinner)
+    draw.rectangle([(60, 60), (width-60, height-60)], outline=inner_border_color, width=10)
     
     # Add header with high contrast colors
-    header_color = (0, 100, 50)  # Dark green for better readability
-    draw.text((width//2, 150), "CERTIFICATE OF COMPLETION", 
+    header_color = (0, 120, 60)  # Rich green for better readability
+    accent_color = (0, 150, 75)  # Slightly lighter green for accents
+    
+    # Certificate title
+    draw.text((width//2, 180), "CERTIFICATE OF COMPLETION", 
              font=title_font, fill=header_color, anchor="mm")
     
-    draw.text((width//2, 250), "CYBERSAGA TRAINING", 
+    # Program name
+    draw.text((width//2, 320), "CYBERSAGA TRAINING", 
              font=header_font, fill=header_color, anchor="mm")
     
-    # Add clean horizontal line
-    draw.line([(150, 320), (width-150, 320)], fill=header_color, width=5)
+    # Add decorative horizontal line with gradient effect
+    line_y = 420
+    line_width = 8
+    for i in range(width-300):
+        # Create a gradient effect on the line
+        x = 150 + i
+        if i < width//4:
+            line_color = (0, 100, 50)
+        elif i < width//2:
+            line_color = (0, 120, 60)
+        elif i < 3*width//4:
+            line_color = (0, 120, 60)
+        else:
+            line_color = (0, 100, 50)
+        draw.line([(x, line_y), (x, line_y+line_width)], fill=line_color, width=1)
     
     # Add user name with clear, large text
-    draw.text((width//2, 420), "This certifies that", 
-             font=body_font, fill=(0, 0, 0), anchor="mm")
+    draw.text((width//2, 550), "This certifies that", 
+             font=body_font, fill=(40, 40, 40), anchor="mm")
     
-    # Name with high contrast
-    draw.text((width//2, 520), user_name, 
+    # Name with high prominence
+    name_y = 680
+    draw.text((width//2, name_y), user_name, 
              font=name_font, fill=(0, 0, 0), anchor="mm")
     
+    # Add subtle underline for name
+    name_width = name_font.getlength(user_name)
+    draw.line([(width//2 - name_width//2 - 50, name_y + 80), 
+               (width//2 + name_width//2 + 50, name_y + 80)], 
+              fill=accent_color, width=3)
+    
     # Add scenario details with larger spacing
-    draw.text((width//2, 620), "has successfully completed the cybersecurity scenario:", 
-             font=body_font, fill=(0, 0, 0), anchor="mm")
+    draw.text((width//2, 830), "has successfully completed the cybersecurity scenario:", 
+             font=body_font, fill=(40, 40, 40), anchor="mm")
     
     # Break long scenario titles into multiple lines if needed
     words = scenario_title.split()
@@ -76,7 +114,7 @@ def generate_certificate(user_name, scenario_title, score, completion_date=None)
     for word in words:
         current_line.append(word)
         test_line = " ".join(current_line)
-        if header_font.getlength(f'"{test_line}"') > width - 300:
+        if header_font.getlength(f'"{test_line}"') > width - 400:
             # Remove the last word and complete this line
             current_line.pop()
             lines.append(" ".join(current_line))
@@ -88,39 +126,57 @@ def generate_certificate(user_name, scenario_title, score, completion_date=None)
     
     # Render scenario title (possibly in multiple lines)
     if len(lines) == 1:
-        # Single line, render normally
-        draw.text((width//2, 720), f'"{scenario_title}"', 
+        # Single line, render normally with decorative quotes
+        scenario_y = 950
+        draw.text((width//2, scenario_y), f'"{scenario_title}"', 
                  font=header_font, fill=header_color, anchor="mm")
     else:
         # Multiple lines, calculate vertical positioning
-        start_y = 700
-        line_height = 100
+        scenario_y = 920
+        line_height = 130
         for i, line in enumerate(lines):
-            draw.text((width//2, start_y + i * line_height), f'"{line}"' if i == 0 else line + ('"' if i == len(lines)-1 else ""), 
+            draw.text((width//2, scenario_y + i * line_height), 
+                     f'"{line}"' if i == 0 else line + ('"' if i == len(lines)-1 else ""), 
                      font=header_font, fill=header_color, anchor="mm")
     
     # Calculate vertical position based on whether title has multiple lines
-    score_y = 820 if len(lines) == 1 else (700 + len(lines) * 100)
+    score_y = 1080 if len(lines) == 1 else (920 + len(lines) * 130 + 50)
     
-    # Add score with clear text
+    # Add score with highlight
     score_text = f"with a score of {score:.0f}%"
     draw.text((width//2, score_y), score_text, 
              font=body_font, fill=(0, 0, 0), anchor="mm")
     
-    # Add date with clear formatting
-    date_y = score_y + 100
+    # Add date with clear formatting and decoration
+    date_y = score_y + 130
     date_text = f"Date: {completion_date}"
+    
+    # Create a subtle background for the date
+    date_width = body_font.getlength(date_text)
+    date_height = 100
+    draw.rectangle([
+        (width//2 - date_width//2 - 30, date_y - date_height//2 + 10),
+        (width//2 + date_width//2 + 30, date_y + date_height//2 - 10)
+    ], fill=(245, 250, 245), outline=accent_color, width=2)
+    
     draw.text((width//2, date_y), date_text, 
              font=body_font, fill=(0, 0, 0), anchor="mm")
     
-    # Add CyberSaga signature
-    sign_y = date_y + 100
-    draw.text((width//2, sign_y), "CyberSaga Training Program", 
+    # Add CyberSaga signature with visual emphasis
+    sign_y = date_y + 130
+    sig_text = "CyberSaga Training Program"
+    draw.text((width//2, sign_y), sig_text, 
              font=body_font, fill=header_color, anchor="mm")
+    
+    # Add decorative element below signature
+    sig_width = body_font.getlength(sig_text)
+    draw.line([(width//2 - sig_width//2, sign_y + 50), 
+               (width//2 + sig_width//2, sign_y + 50)], 
+              fill=accent_color, width=3)
     
     # Convert to high-quality PNG
     buffered = BytesIO()
-    certificate.save(buffered, format="PNG", quality=95)  # Higher quality
+    certificate.save(buffered, format="PNG", quality=100)  # Maximum quality
     img_str = base64.b64encode(buffered.getvalue()).decode()
     
     return img_str
@@ -169,7 +225,7 @@ def show_certificate_page():
         f"""
         <div style="text-align: center; margin: 20px 0;">
             <img src="data:image/png;base64,{certificate_img}" 
-                 style="max-width: 100%; border: 2px solid #ddd;">
+                 style="max-width: 100%; border: 2px solid #ddd; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
         </div>
         """,
         unsafe_allow_html=True
