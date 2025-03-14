@@ -3,5 +3,4 @@ streamlit
 agno
 python-dotenv
 openai
-reportlab
 Pillow
